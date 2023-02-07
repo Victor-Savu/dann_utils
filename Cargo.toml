@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 dann = { git = "https://github.com/victor-savu/dann", branch = "grad_eval" }
 plotly = "0.8.3"
+itertools-num = "0.1.3"

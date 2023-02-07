@@ -1,7 +1,8 @@
+use itertools_num::linspace;
 use plotly::{
     color::NamedColor,
-    common::{HoverInfo, Mode},
-    layout::{Axis, ShapeLayer, ShapeType},
+    common::{ColorScale, ColorScaleElement, HoverInfo, Mode},
+    layout::{Axis, GridPattern, LayoutGrid, ShapeLayer, ShapeType},
     Histogram, Plot, Scatter,
 };
 
@@ -199,6 +200,105 @@ pub fn hist_weights<'a, T: 'a>(
                 .collect(),
         )
         .n_bins_x(bins),
+    );
+    plot
+}
+
+#[derive(Debug)]
+pub struct Gridsize {
+    inputs: usize,
+    outputs: usize,
+    latent_cols: usize,
+    latent: std::collections::HashMap<usize, usize>,
+}
+
+impl Gridsize {
+    pub fn new(nn: &dann::Dann<f64>) -> Self {
+        let rows = nn.inputs.max(nn.outputs);
+        let latent_cols = (nn.latent.len() + rows - 1) / rows;
+        Self {
+            inputs: nn.inputs,
+            outputs: nn.outputs,
+            latent_cols,
+            latent: nn
+                .latent
+                .iter()
+                .enumerate()
+                .map(|(idx, id)| {
+                    let row = idx / latent_cols;
+                    let col = idx % latent_cols;
+                    (*id, 1 + row * (latent_cols + 2) + (col + 1))
+                })
+                .collect(),
+        }
+    }
+
+    pub fn subplot(&self, id: &dann::NodeKind) -> usize {
+        use dann::NodeKind::*;
+        match id {
+            Input(i) => *i * self.cols() + 1,
+            Latent(i) => self.latent[i],
+            Output(i) => {
+                (*i - self.inputs) * self.cols()
+                    + self.cols()
+                    + (self.rows() - self.outputs) / 2 * self.cols()
+            }
+        }
+    }
+
+    pub fn rows(&self) -> usize {
+        self.inputs.max(self.outputs)
+    }
+
+    pub fn cols(&self) -> usize {
+        self.latent_cols + 2
+    }
+}
+
+pub fn show<'a, H>(gs: &Gridsize, hm: H, inputs: Box<plotly::Scatter<f64, f64>>) -> Plot
+where
+    H: IntoIterator<Item = (&'a dann::NodeKind, &'a Vec<Vec<f64>>)> + 'a,
+{
+    let mut plot = Plot::new();
+
+    for (id, values) in hm {
+        plot.add_trace(
+            plotly::Contour::new(
+                linspace(-1.2, 1.2, 100).collect(),
+                linspace(-1.2, 1.2, 100).collect(),
+                values.clone(),
+            )
+            .opacity(0.38)
+            .name(&format!("{id:?}"))
+            .x_axis(&format!("x{}", gs.subplot(id)))
+            .y_axis(&format!("y{}", gs.subplot(id)))
+            .show_scale(false)
+            .show_legend(false)
+            .color_scale(ColorScale::Vector(vec![
+                ColorScaleElement(-1., "#0000ff".to_string()),
+                ColorScaleElement(0., "#000000".to_string()),
+                ColorScaleElement(1., "#ff00ff".to_string()),
+            ])),
+        );
+        plot.add_trace(
+            inputs
+                .clone()
+                .x_axis(format!("x{}", gs.subplot(id)))
+                .y_axis(format!("y{}", gs.subplot(id)))
+                .hover_info(HoverInfo::Skip),
+        );
+    }
+
+    plot.set_layout(
+        plotly::layout::Layout::new()
+            .width(1200)
+            .height(1200 * gs.rows() / gs.cols())
+            .grid(
+                LayoutGrid::new()
+                    .rows(gs.rows())
+                    .columns(gs.cols())
+                    .pattern(GridPattern::Independent),
+            ),
     );
     plot
 }
