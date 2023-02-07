@@ -1,5 +1,6 @@
 pub mod data;
 pub use data::*;
 
-pub mod network;
-pub use network::Network;
+pub mod vis;
+pub use vis::{Network, hist_weights};
+

@@ -1,3 +1,10 @@
+use plotly::{
+    color::NamedColor,
+    common::{HoverInfo, Mode},
+    layout::{Axis, ShapeLayer, ShapeType},
+    Histogram, Plot, Scatter,
+};
+
 #[derive(Clone, Copy, Debug)]
 pub struct Node {
     pub x: f64,
@@ -97,13 +104,6 @@ impl Network {
     }
 
     pub fn evcxr_display(&self) {
-        use plotly::{
-            color::NamedColor,
-            common::{HoverInfo, Mode},
-            layout::{Axis, ShapeLayer, ShapeType},
-            Plot, Scatter,
-        };
-
         let nodes = plotly::Scatter::new(
             self.nodes.iter().map(|&Node { x, .. }| x).collect(),
             self.nodes.iter().map(|&Node { y, .. }| y).collect(),
@@ -184,4 +184,21 @@ impl Network {
         plot.add_trace(weights);
         plot.evcxr_display();
     }
+}
+
+pub fn hist_weights<'a, T: 'a>(
+    nodes: impl IntoIterator<Item = (&'a T, &'a dann::Node<f64>)> + 'a,
+    bins: usize,
+) -> Plot {
+    let mut plot = Plot::new();
+    plot.add_trace(
+        Histogram::new(
+            nodes
+                .into_iter()
+                .flat_map(|(_, node)| node.weights.values().cloned())
+                .collect(),
+        )
+        .n_bins_x(bins),
+    );
+    plot
 }
