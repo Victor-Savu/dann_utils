@@ -291,8 +291,8 @@ where
 
     plot.set_layout(
         plotly::layout::Layout::new()
-            .width(1200)
-            .height(1200 * gs.rows() / gs.cols())
+            .width((1200 as f64 * (gs.cols() as f64) / (gs.rows() as f64)) as usize)
+            .height(1200)
             .grid(
                 LayoutGrid::new()
                     .rows(gs.rows())
