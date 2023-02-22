@@ -6,6 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dann = { git = "https://github.com/victor-savu/dann", branch = "grad_eval" }
+dann = { git = "https://github.com/victor-savu/dann" }
 plotly = "0.8.3"
 itertools-num = "0.1.3"
