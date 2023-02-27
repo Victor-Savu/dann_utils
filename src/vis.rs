@@ -27,12 +27,12 @@ pub struct Network {
     pub edges: Vec<Edge>,
 }
 
-fn index(kind: &dann::NodeKind, nn: &dann::Dann<f64>) -> usize {
+fn index<const INPUTS: usize, const OUTPUTS: usize>(kind: &dann::NodeKind, nn: &dann::Dann<f64, INPUTS, OUTPUTS>) -> usize {
     match kind {
         dann::NodeKind::Input(id) => *id,
         dann::NodeKind::Output(id) => *id,
         dann::NodeKind::Latent(id) => {
-            nn.latent.iter().position(|i| i == id).unwrap() + nn.inputs + nn.outputs
+            nn.latent.iter().position(|i| i == id).unwrap() + INPUTS + OUTPUTS
         }
     }
 }
@@ -52,28 +52,28 @@ impl Network {
         }
     }
 
-    pub fn from_dann(nn: &dann::Dann<f64>) -> Self {
+    pub fn from_dann<const INPUTS: usize, const OUTPUTS: usize>(nn: &dann::Dann<f64, INPUTS, OUTPUTS>) -> Self {
         Self::new(
-            (0..nn.inputs)
+            (0..INPUTS)
                 .map(|id| {
                     let bias = nn.nodes[&dann::NodeKind::Input(id)].bias;
                     Node {
                         x: 0.,
-                        y: 1. - id as f64 / (nn.inputs - 1) as f64,
+                        y: 1. - id as f64 / (INPUTS - 1) as f64,
                         id,
                         bias,
                     }
                 })
-                .chain((0..nn.outputs).map(|idx| {
-                    let id = idx + nn.inputs;
+                .chain((0..OUTPUTS).map(|idx| {
+                    let id = idx + INPUTS;
                     let bias = nn.nodes[&dann::NodeKind::Output(id)].bias;
                     Node {
                         x: 1.,
                         y: 1.
-                            - if nn.outputs == 1 {
+                            - if OUTPUTS == 1 {
                                 0.5
                             } else {
-                                idx as f64 / (nn.outputs - 1) as f64
+                                idx as f64 / (OUTPUTS - 1) as f64
                             },
                         id,
                         bias,
@@ -213,12 +213,12 @@ pub struct Gridsize {
 }
 
 impl Gridsize {
-    pub fn new(nn: &dann::Dann<f64>) -> Self {
-        let rows = nn.inputs.max(nn.outputs);
+    pub fn new<const INPUTS: usize, const OUTPUTS: usize>(nn: &dann::Dann<f64, INPUTS, OUTPUTS>) -> Self {
+        let rows = INPUTS.max(OUTPUTS);
         let latent_cols = (nn.latent.len() + rows - 1) / rows;
         Self {
-            inputs: nn.inputs,
-            outputs: nn.outputs,
+            inputs: INPUTS,
+            outputs: OUTPUTS,
             latent_cols,
             latent: nn
                 .latent
